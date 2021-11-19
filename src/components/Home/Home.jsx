@@ -15,12 +15,11 @@ import UsersTable from '../Table/Table';
 import { get, post, patch } from '../../services/http/index';
 
 window.addEventListener('online', () => {
-	alert('Ви у мережі');
-
 	const timer = setTimeout(() => {
+		alert('Ви у мережі');
 		document.location.reload();
 		clearTimeout(timer);
-	}, 200);
+	}, 1000);
 });
 window.addEventListener('offline', () => alert('Пропала мережа'));
 

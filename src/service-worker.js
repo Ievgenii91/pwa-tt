@@ -90,6 +90,17 @@ registerRoute(
 	'GET'
 );
 
+const bgSync = new BackgroundSyncPlugin('workFinishQueue', {
+	maxRetentionTime: 24 * 60,
+});
+registerRoute(
+	`${SERVER_HOST}api/v1/timetracking`,
+	new NetworkFirst({
+		plugins: [bgSync],
+	}),
+	'POST'
+);
+
 const ttBgSync = new BackgroundSyncPlugin('toggleStartQueue', {
 	maxRetentionTime: 24 * 60,
 });
@@ -111,13 +122,3 @@ registerRoute(
 	'PATCH'
 );
 
-const bgSync = new BackgroundSyncPlugin('workFinishQueue', {
-	maxRetentionTime: 24 * 60,
-});
-registerRoute(
-	`${SERVER_HOST}api/v1/timetracking`,
-	new NetworkFirst({
-		plugins: [bgSync],
-	}),
-	'POST'
-);
