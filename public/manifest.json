@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Timetracking App",
+  "name": "Облік часу для працівників",
   "icons": [
     {
       "src": "favicon.ico",
