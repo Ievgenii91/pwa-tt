@@ -14,6 +14,16 @@ import Alert from '@mui/material/Alert';
 import UsersTable from '../Table/Table';
 import { get, post, patch } from '../../services/http/index';
 
+window.addEventListener('online', () => {
+	alert('Ви у мережі');
+
+	const timer = setTimeout(() => {
+		document.location.reload();
+		clearTimeout(timer);
+	}, 200);
+});
+window.addEventListener('offline', () => alert('Пропала мережа'));
+
 const style = {
 	position: 'absolute',
 	top: '50%',
@@ -57,9 +67,11 @@ export default function Home() {
 				setEmployees(
 					data.map((v) => ({ ...v, date: dateToString(new Date(v.started)) }))
 				);
-				setLoading(false);
 			} catch (e) {
-				setError(e);
+				setError(
+					'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+				);
+			} finally {
 				setLoading(false);
 			}
 		}
@@ -72,6 +84,7 @@ export default function Home() {
 
 	const start = useCallback(async () => {
 		setLoading(true);
+		let syncLocally = false;
 		const date = new Date();
 		try {
 			await patch(
@@ -88,16 +101,35 @@ export default function Home() {
 			setEmployees(
 				data.map((v) => ({ ...v, date: dateToString(new Date(v.started)) }))
 			);
+		} catch (e) {
+			setError(
+				'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+			);
+			syncLocally = true;
+		} finally {
+			if (syncLocally) {
+				setEmployees((data) => {
+					return data.map((v) => {
+						if (v._id === selectedEmployee._id) {
+							return {
+								...v,
+								date: dateToString(new Date(date)),
+								started: date,
+							};
+						}
+						return v;
+					});
+				});
+			}
 			setSelectedEmployee(null);
 			setLoading(false);
-		} catch (e) {
-			setError(e);
 		}
 	}, [selectedEmployee]);
 
 	const triggerStop = useCallback(async (selected) => {
+		let syncLocally = false;
+		setLoading(true);
 		try {
-			setLoading(true);
 			await post(process.env.REACT_APP_HOST + 'api/v1/timetracking', {
 				employeeName: selected.name,
 				employeeId: selected._id,
@@ -106,6 +138,13 @@ export default function Home() {
 				ratePerHour: selected.ratePerHour,
 				clientId: process.env.REACT_APP_CLIENT_ID,
 			});
+		} catch (e) {
+			syncLocally = true;
+			setError(
+				'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+			);
+		}
+		try {
 			await patch(
 				process.env.REACT_APP_HOST + 'api/v1/employees/' + selected._id,
 				{
@@ -119,10 +158,28 @@ export default function Home() {
 			setEmployees(
 				data.map((v) => ({ ...v, date: dateToString(new Date(v.started)) }))
 			);
-			setSelectedEmployee(null);
-			setLoading(false);
 		} catch (e) {
-			setError(e.message);
+			syncLocally = true;
+			setError(
+				'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+			);
+		} finally {
+			if (syncLocally) {
+				setEmployees((data) => {
+					return data.map((v) => {
+						if (v._id === selected._id) {
+							return {
+								...v,
+								started: null,
+								date: null,
+							};
+						} else {
+							return v;
+						}
+					});
+				});
+			}
+			setSelectedEmployee(null);
 			setLoading(false);
 		}
 	}, []);
@@ -170,8 +227,6 @@ export default function Home() {
 			setPassCorrect(false);
 		}
 	}, []);
-
-	console.log(passCorrect);
 
 	if (!logined) {
 		return (
@@ -229,7 +284,7 @@ export default function Home() {
 			<div className="content">
 				{error && (
 					<Box sx={{ minWidth: 120 }} m={2} pt={3}>
-						<Alert severity="error">{error.message}</Alert>
+						<Alert severity="error">{error}</Alert>
 					</Box>
 				)}
 				<Box sx={{ minWidth: 120 }} m={2} pt={3}>
