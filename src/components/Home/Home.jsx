@@ -19,7 +19,7 @@ window.addEventListener('online', () => {
 		alert('Ви у мережі');
 		document.location.reload();
 		clearTimeout(timer);
-	}, 1000);
+	}, 2000);
 });
 window.addEventListener('offline', () => alert('Пропала мережа'));
 
