@@ -14,15 +14,6 @@ import Alert from '@mui/material/Alert';
 import UsersTable from '../Table/Table';
 import { get, post, patch } from '../../services/http/index';
 
-window.addEventListener('online', () => {
-	const timer = setTimeout(() => {
-		alert('Ви у мережі');
-		document.location.reload();
-		clearTimeout(timer);
-	}, 2000);
-});
-window.addEventListener('offline', () => alert('Пропала мережа'));
-
 const style = {
 	position: 'absolute',
 	top: '50%',
@@ -44,6 +35,8 @@ const dateToString = (d) => {
 	return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
 };
 
+const sync = [];
+
 export default function Home() {
 	const pass = localStorage.getItem('mps');
 	const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -58,6 +51,7 @@ export default function Home() {
 	useEffect(() => {
 		async function fetchData() {
 			setLoading(true);
+			setError(null);
 			try {
 				const data = await get(
 					process.env.REACT_APP_HOST + 'api/v1/employees',
@@ -68,13 +62,37 @@ export default function Home() {
 				);
 			} catch (e) {
 				setError(
-					'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+					'Схоже відсутній звязок, дані будуть автоматично синхронізовані'
 				);
 			} finally {
 				setLoading(false);
 			}
 		}
 		fetchData();
+
+		window.addEventListener('online', () => {
+			alert('Ви у мережі');
+			setLoading(true);
+			// const timer = setTimeout(async () => {
+			// 	await fetchData();
+			// 	clearTimeout(timer);
+			// }, 60000); // 1 min cause bg sync can be slow
+		});
+		window.addEventListener('offline', () => alert('Пропала мережа'));
+
+		navigator.serviceWorker.addEventListener('message', (event) => {
+			console.log('sync', event.data.msg, event.data.url);
+			if (sync.length > 1) {
+				return fetchData();
+			}
+			sync.push(1);
+		});
+
+		return () => {
+			window.removeEventListener('online');
+			window.removeEventListener('offline');
+			navigator.serviceWorker.removeEventListener('message');
+		};
 	}, []);
 
 	const handleChange = (event) => {
@@ -102,7 +120,7 @@ export default function Home() {
 			);
 		} catch (e) {
 			setError(
-				'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+				'Схоже відсутній звязок, дані будуть автоматично синхронізовані'
 			);
 			syncLocally = true;
 		} finally {
@@ -140,7 +158,7 @@ export default function Home() {
 		} catch (e) {
 			syncLocally = true;
 			setError(
-				'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+				'Схоже відсутній звязок, дані будуть автоматично синхронізовані'
 			);
 		}
 		try {
@@ -160,7 +178,7 @@ export default function Home() {
 		} catch (e) {
 			syncLocally = true;
 			setError(
-				'Схоже сталася помилка або відсутній звязок, дані будуть автоматично синхронізовані'
+				'Схоже відсутній звязок, дані будуть автоматично синхронізовані'
 			);
 		} finally {
 			if (syncLocally) {
