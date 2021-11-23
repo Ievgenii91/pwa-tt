@@ -11,16 +11,25 @@ import { clientsClaim } from 'workbox-core';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies';
+import {
+	StaleWhileRevalidate,
+	NetworkFirst,
+	NetworkOnly,
+} from 'workbox-strategies';
 import { BackgroundSyncPlugin } from 'workbox-background-sync';
 
 clientsClaim();
 
 let clientId = null;
 self.addEventListener('fetch', (event) => {
-	console.log(event.clientId);
 	clientId = event.clientId;
 });
+
+const postMessage = (message) => {
+	self.clients.get(clientId).then((client) => {
+		client.postMessage(message);
+	});
+};
 
 const domain = new URL(self.location).searchParams.get('domain');
 const SERVER_HOST = `https://${domain}`;
@@ -99,16 +108,14 @@ registerRoute(
 
 const bgSync = new BackgroundSyncPlugin('workFinishQueue', {
 	maxRetentionTime: 24 * 60,
-	onSync: (options) => {
-		self.clients.get(clientId).then((client) => {
-			client.postMessage('toggleStartQueue sync', options);
-		});
+	onSync: () => {
+		postMessage('workFinishQueue sync');
 	},
 });
 registerRoute(
 	({ url }) =>
 		url.origin === SERVER_HOST && url.pathname === '/api/v1/timetracking',
-	new NetworkFirst({
+	new NetworkOnly({
 		plugins: [bgSync],
 	}),
 	'POST'
@@ -116,16 +123,14 @@ registerRoute(
 
 const ttBgSync = new BackgroundSyncPlugin('toggleStartQueue', {
 	maxRetentionTime: 24 * 60,
-	onSync: (options) => {
-		self.clients.get(clientId).then((client) => {
-			client.postMessage('toggleStartQueue sync', options);
-		});
+	onSync: () => {
+		postMessage('toggleStartQueue sync');
 	},
 });
 registerRoute(
 	({ url }) =>
 		url.origin === SERVER_HOST && url.pathname.includes('/api/v1/employees/'),
-	new NetworkFirst({
+	new NetworkOnly({
 		plugins: [ttBgSync],
 	}),
 	'PATCH'

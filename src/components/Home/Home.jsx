@@ -73,19 +73,15 @@ export default function Home() {
 		window.addEventListener('online', () => {
 			alert('Ви у мережі');
 			setLoading(true);
-			// const timer = setTimeout(async () => {
-			// 	await fetchData();
-			// 	clearTimeout(timer);
-			// }, 60000); // 1 min cause bg sync can be slow
 		});
 		window.addEventListener('offline', () => alert('Пропала мережа'));
 
 		navigator.serviceWorker.addEventListener('message', (event) => {
-			console.log('sync', event.data.msg, event.data.url);
-			if (sync.length > 1) {
-				return fetchData();
-			}
-			sync.push(1);
+			console.log('sync', event.data);
+			const timer = setTimeout(async () => {
+				await fetchData();
+				clearTimeout(timer);
+			}, 2000);
 		});
 
 		return () => {
