@@ -35,8 +35,6 @@ const dateToString = (d) => {
 	return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
 };
 
-const sync = [];
-
 export default function Home() {
 	const pass = localStorage.getItem('mps');
 	const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -72,17 +70,24 @@ export default function Home() {
 
 		window.addEventListener('online', () => {
 			alert('Ви у мережі');
-			setLoading(true);
-		});
-		window.addEventListener('offline', () => alert('Пропала мережа'));
-
-		navigator.serviceWorker.addEventListener('message', (event) => {
-			console.log('sync', event.data);
 			const timer = setTimeout(async () => {
 				await fetchData();
+				setLoading(false);
 				clearTimeout(timer);
-			}, 2000);
+			}, 5000);
 		});
+		window.addEventListener('offline', () => {
+			alert('Пропала мережа');
+			setLoading(true);
+		});
+
+		// navigator.serviceWorker.addEventListener('message', (event) => {
+		// 	console.log('sync', event.data);
+		// 	const timer = setTimeout(async () => {
+		// 		await fetchData();
+		// 		clearTimeout(timer);
+		// 	}, 2000);
+		// });
 
 		return () => {
 			window.removeEventListener('online');
